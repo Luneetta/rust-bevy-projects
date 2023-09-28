@@ -4,8 +4,8 @@ use rand::prelude::*;
 pub const PLAYER_SIZE: f32 = 64.0;
 pub const PLAYER_WIDTH: f32 = 10.0;
 pub const STAR_SIZE: f32 = 30.0;
-pub const PLAYER_SPEED: f32 = 100.0;
-pub const STAR_SPEED: f32 = 100.0;
+pub const PLAYER_SPEED: f32 = 600.0;
+pub const STAR_SPEED: f32 = 500.0;
 pub const STAR_ROTATE_SPEED: f32 = 5.0;
 fn main() {
     App::new()
@@ -14,8 +14,8 @@ fn main() {
     .init_resource::<PlayerTwoScore>()
     .add_systems(Startup, spawn_camera)
     .add_systems(Startup, (spawn_player_one, spawn_player_two, spawn_star))
-    .add_systems(Update, (confine_player_one, change_star_direction, player_star_collision))
-    .add_systems(Update, (player_one_movement, star_direction))
+    .add_systems(Update, (confine_player_one, change_star_direction, player_star_collision, player_two_star_collision))
+    .add_systems(Update, (player_one_movement, star_direction, player_two_movement))
     .run();
 }
 
@@ -237,6 +237,34 @@ pub fn player_star_collision(
             let player_position = player_transform.translation;
             let x_distance = star_position.x - player_position.x;
 
+            if x_distance <= (PLAYER_WIDTH / 2.0) + (STAR_SIZE / 2.0) && (star_position.y - (STAR_SIZE / 2.0) <= player_position.y + (PLAYER_SIZE / 2.0) && star_position.y + (STAR_SIZE / 2.0) >= player_position.y - (PLAYER_SIZE / 2.0))  {
+                star.direction.x *= -1.0;
+            }
+        }
+    }
+}
+
+pub fn player_two_movement(
+    star_query: Query<&Transform, With<Star>>,
+    mut player_two_query: Query<&mut Transform, (With<PlayerTwo>, Without<Star>)>,
+) {
+    if let Ok(mut player_transform) = player_two_query.get_single_mut() {
+        if let Ok(star_transform) = star_query.get_single() {
+            player_transform.translation.y = star_transform.translation.y;
+        }
+    }
+}
+
+
+pub fn player_two_star_collision(
+    mut star_query: Query<(&Transform, &mut Star)>,
+    player_query: Query<&Transform, With<PlayerTwo>>,
+) {
+    for(star_transform, mut star) in star_query.iter_mut() {
+        if let Ok(player_transform) = player_query.get_single() {
+            let star_position = star_transform.translation;
+            let player_position = player_transform.translation;
+            let x_distance = player_position.x - star_position.x;
             if x_distance <= (PLAYER_WIDTH / 2.0) + (STAR_SIZE / 2.0) && (star_position.y - (STAR_SIZE / 2.0) <= player_position.y + (PLAYER_SIZE / 2.0) && star_position.y + (STAR_SIZE / 2.0) >= player_position.y - (PLAYER_SIZE / 2.0))  {
                 star.direction.x *= -1.0;
             }
